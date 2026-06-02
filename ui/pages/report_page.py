@@ -520,7 +520,7 @@ class ReportPage(QWidget):
             self.m_salaries.setVisible(True)
         else:
             self.close_btn.setText("  🔒 Close Month  ")
-            self.m_shortfall.setVisible(False)
+            self.m_shortfall.setVisible(True)
             self.m_salaries.setVisible(True)
 
         self._load_current_report()
@@ -568,6 +568,8 @@ class ReportPage(QWidget):
             else:
                 self.m_shortfall.update_value(format_currency(shortfall))
                 self.m_shortfall.label_lbl.setText("SURPLUS")
+
+            self.m_shortfall.label_lbl.setText("CASH SURPLUS" if shortfall >= 0 else "CASH SHORTFALL")
 
             # Status banner
             if data.get("is_closed"):
@@ -633,6 +635,11 @@ class ReportPage(QWidget):
                     pb.get("method", ""),
                     format_currency(pb.get("amount", 0)),
                 ))
+            pay_rows.extend([
+                ("Expected Cash Collection", format_currency(data.get("expected_cash_collection", 0))),
+                ("Actual Cash Collection", format_currency(data.get("cash_collection", 0))),
+                ("Cash Surplus / Shortfall", format_currency(data.get("payment_shortfall", 0))),
+            ])
             self.payment_table.populate(pay_rows)
 
             # Expense table
@@ -689,6 +696,12 @@ class ReportPage(QWidget):
             self.m_purchases.label_lbl.setText("ACTUAL PURCHASES")
             self.m_purchases.update_value(
                 format_currency(data.get("total_actual_purchases", 0))
+            )
+            shortfall = data.get("payment_shortfall", 0)
+            self.m_shortfall.label_lbl.setText("CASH SURPLUS" if shortfall >= 0 else "CASH SHORTFALL")
+            self.m_shortfall.update_value(
+                format_currency(shortfall) if shortfall >= 0
+                else f"-{format_currency(abs(shortfall))}"
             )
 
             # Status
@@ -763,6 +776,11 @@ class ReportPage(QWidget):
                     pb.get("method", ""),
                     format_currency(pb.get("amount", 0)),
                 ))
+            pay_rows.extend([
+                ("Expected Cash Collection", format_currency(data.get("expected_cash_collection", 0))),
+                ("Actual Cash Collection", format_currency(data.get("cash_collection", 0))),
+                ("Cash Surplus / Shortfall", format_currency(data.get("payment_shortfall", 0))),
+            ])
             self.payment_table.populate(pay_rows)
 
             # Expense table — show aggregated expenses info

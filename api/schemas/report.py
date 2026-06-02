@@ -57,7 +57,9 @@ class DailyReportSummary(BaseModel):
     # Payments
     total_payments: float
     payment_breakdown: List[PaymentBreakdown]
-    payment_shortfall: float  # positive = surplus, negative = deficit
+    cash_collection: float = 0.0
+    expected_cash_collection: float = 0.0
+    payment_shortfall: float  # positive = cash surplus, negative = cash deficit
 
     # Expenses
     total_expenses: float
@@ -144,6 +146,9 @@ class MonthlyReportSummary(BaseModel):
     # Payments
     total_payments: float = 0.0
     payment_breakdown: List[PaymentBreakdown] = []
+    cash_collection: float = 0.0
+    expected_cash_collection: float = 0.0
+    payment_shortfall: float = 0.0
 
     # Expenses
     total_daily_expenses: float

@@ -11,7 +11,7 @@ from datetime import date
 from database.engine import get_db
 from database.models import (
     Sale, Expense, Payment, FuelType, FuelPurchase, FuelPurchaseRate,
-    FuelSellingRate, Customer, CustomerCredit, CustomerRepayment
+    FuelSellingRate, Customer, CustomerCredit, CustomerRepayment, EmployeeSalary
 )
 from api.schemas.dashboard import DashboardData
 
@@ -94,9 +94,24 @@ def get_dashboard_summary(
             pay_methods[p.payment_method] = p.amount
     today_payments_by_method = [{"method": k, "amount": v} for k, v in pay_methods.items()]
 
-    # 6. PAYMENT SHORTFALL CHECK
-    # Positive = excess collection, Negative = under-collected vs sales
-    payment_shortfall = today_total_payments - today_total_sales
+    salaries = db.query(EmployeeSalary).filter(
+        EmployeeSalary.paid_date == dashboard_date
+    ).all()
+    today_total_salaries = sum(s.monthly_salary for s in salaries)
+
+    # 6. CASH RECONCILIATION
+    # Expenses and salary paid from the counter reduce the cash expected in hand.
+    cash_collection = pay_methods.get("Cash", 0.0)
+    non_cash_collections = (
+        pay_methods.get("Paytm", 0.0) +
+        pay_methods.get("PhonePe", 0.0) +
+        pay_methods.get("CCMS", 0.0)
+    )
+    expected_cash_collection = (
+        today_total_sales - non_cash_collections -
+        today_total_expenses - today_total_salaries
+    )
+    payment_shortfall = cash_collection - expected_cash_collection
 
     # 7. CUSTOMER CREDIT INFO
     today_credit_rows = db.query(CustomerCredit).filter(
@@ -142,6 +157,8 @@ def get_dashboard_summary(
         today_purchases_by_fuel=today_purchases_by_fuel,
         today_total_payments=today_total_payments,
         today_payments_by_method=today_payments_by_method,
+        cash_collection=cash_collection,
+        expected_cash_collection=expected_cash_collection,
         payment_shortfall=payment_shortfall,
         total_credits_given_today=total_credits_given_today,
         total_credits_outstanding=total_credits_outstanding,

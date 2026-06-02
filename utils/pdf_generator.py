@@ -259,6 +259,16 @@ def generate_daily_pdf(summary_data: dict) -> str:
         "Total Collections", format_currency(summary_data.get("total_payments", 0)),
         styles
     ))
+    elements.extend(_add_summary_row(
+        "Expected Cash Collection",
+        format_currency(summary_data.get("expected_cash_collection", 0)),
+        styles
+    ))
+    elements.extend(_add_summary_row(
+        "Actual Cash Collection",
+        format_currency(summary_data.get("cash_collection", 0)),
+        styles
+    ))
 
     shortfall = summary_data.get("payment_shortfall", 0)
     if shortfall < 0:
@@ -392,6 +402,29 @@ def generate_monthly_pdf(summary_data: dict) -> str:
         "Employee Salaries",
         format_currency(summary_data.get("total_salaries", 0)),
         styles
+    ))
+    elements.append(Paragraph("CASH RECONCILIATION", styles["SectionHeader"]))
+    elements.extend(_add_summary_row(
+        "Total Collections",
+        format_currency(summary_data.get("total_payments", 0)),
+        styles
+    ))
+    elements.extend(_add_summary_row(
+        "Expected Cash Collection",
+        format_currency(summary_data.get("expected_cash_collection", 0)),
+        styles
+    ))
+    elements.extend(_add_summary_row(
+        "Actual Cash Collection",
+        format_currency(summary_data.get("cash_collection", 0)),
+        styles
+    ))
+    cash_difference = summary_data.get("payment_shortfall", 0)
+    elements.extend(_add_summary_row(
+        "Cash Surplus" if cash_difference >= 0 else "Cash Shortfall",
+        format_currency(cash_difference if cash_difference >= 0 else abs(cash_difference)),
+        styles,
+        BRAND_SUCCESS if cash_difference >= 0 else BRAND_DANGER
     ))
     elements.append(Spacer(1, 3 * mm))
 

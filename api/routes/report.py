@@ -130,8 +130,6 @@ def get_daily_summary(
     payment_breakdown = [
         PaymentBreakdown(method=k, amount=v) for k, v in pay_methods.items()
     ]
-    payment_shortfall = total_payments - total_sales
-
     # ── Expenses ──
     expenses = db.query(Expense).filter(Expense.expense_date == report_date).all()
     total_expenses = sum(e.amount for e in expenses)
@@ -158,6 +156,16 @@ def get_daily_summary(
             paid_date=s.paid_date or report_date,
         ) for s in salaries
     ]
+    cash_collection = pay_methods.get("Cash", 0.0)
+    non_cash_collections = (
+        pay_methods.get("Paytm", 0.0) +
+        pay_methods.get("PhonePe", 0.0) +
+        pay_methods.get("CCMS", 0.0)
+    )
+    expected_cash_collection = (
+        total_sales - non_cash_collections - total_expenses - total_salaries
+    )
+    payment_shortfall = cash_collection - expected_cash_collection
 
     gross_profit = total_sales - total_purchase_cost
     net_profit = gross_profit - total_expenses - total_salaries
@@ -177,6 +185,8 @@ def get_daily_summary(
         nozzle_breakdown=nozzle_breakdown,
         total_payments=total_payments,
         payment_breakdown=payment_breakdown,
+        cash_collection=cash_collection,
+        expected_cash_collection=expected_cash_collection,
         payment_shortfall=payment_shortfall,
         total_expenses=total_expenses,
         expense_breakdown=expense_breakdown,
@@ -368,6 +378,17 @@ def get_monthly_summary(
     payment_breakdown = [
         PaymentBreakdown(method=k, amount=v) for k, v in pay_methods.items()
     ]
+    cash_collection = pay_methods.get("Cash", 0.0)
+    non_cash_collections = (
+        pay_methods.get("Paytm", 0.0) +
+        pay_methods.get("PhonePe", 0.0) +
+        pay_methods.get("CCMS", 0.0)
+    )
+    expected_cash_collection = (
+        total_sales - non_cash_collections -
+        total_daily_expenses - total_monthly_expenses - total_salaries
+    )
+    payment_shortfall = cash_collection - expected_cash_collection
 
     # ── Profit ──
     gross_profit = total_sales - total_purchase_cost
@@ -398,6 +419,9 @@ def get_monthly_summary(
         total_actual_litres_purchased=total_actual_litres_purchased,
         total_payments=total_payments,
         payment_breakdown=payment_breakdown,
+        cash_collection=cash_collection,
+        expected_cash_collection=expected_cash_collection,
+        payment_shortfall=payment_shortfall,
         total_daily_expenses=total_daily_expenses,
         total_monthly_expenses=total_monthly_expenses,
         total_salaries=total_salaries,

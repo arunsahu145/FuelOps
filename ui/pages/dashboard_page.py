@@ -253,12 +253,14 @@ class DashboardPage(QWidget):
 
             # ── Payment Shortfall Warning ──
             shortfall = data.get("payment_shortfall", 0.0)
+            expected_cash = data.get("expected_cash_collection", 0.0)
+            cash_collection = data.get("cash_collection", 0.0)
             if total_sales > 0 and shortfall < 0:
                 deficit = abs(shortfall)
                 self.shortfall_label.setText(
-                    f"Payment shortfall detected! Collections ({format_currency(total_payments)}) "
-                    f"are ₹{deficit:,.2f} less than total sales ({format_currency(total_sales)}). "
-                    f"Please verify all payment entries."
+                    f"Cash shortfall detected! Cash collection ({format_currency(cash_collection)}) "
+                    f"is {format_currency(deficit)} less than expected cash "
+                    f"({format_currency(expected_cash)}). Please verify all payment entries."
                 )
                 self.shortfall_banner.setVisible(True)
             else:

@@ -25,8 +25,10 @@ class DashboardData(BaseModel):
     # Payment Collection Card
     today_total_payments: float = 0.0
     today_payments_by_method: List[dict] = []
+    cash_collection: float = 0.0
+    expected_cash_collection: float = 0.0
 
-    # Payment shortfall warning (negative = payments below sales)
+    # Payment shortfall warning (negative = cash below expected cash collection)
     payment_shortfall: float = 0.0
 
     # Customer credit ledger
