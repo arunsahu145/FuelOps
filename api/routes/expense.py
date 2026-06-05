@@ -11,7 +11,6 @@ from datetime import date
 from database.engine import get_db
 from database.models import Expense
 from api.schemas.expense import ExpenseCreateRequest, ExpenseResponse, ExpenseSummary
-from config import EXPENSE_CATEGORIES
 
 router = APIRouter(prefix="/api/expense", tags=["Expense Management"])
 
@@ -19,11 +18,8 @@ router = APIRouter(prefix="/api/expense", tags=["Expense Management"])
 @router.post("/entry", response_model=ExpenseResponse)
 def create_expense(request: ExpenseCreateRequest, db: Session = Depends(get_db)):
     """Record a new daily expense."""
-    if request.category not in EXPENSE_CATEGORIES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid expense category. Must be one of {EXPENSE_CATEGORIES}"
-        )
+    if not request.category or not request.category.strip():
+        raise HTTPException(status_code=400, detail="Expense category is required")
 
     expense = Expense(
         expense_date=request.expense_date,

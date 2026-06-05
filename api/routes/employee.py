@@ -122,3 +122,35 @@ def pay_employee_salary(
         "amount": salary.monthly_salary,
         "paid_date": salary.paid_date,
     }
+
+
+@router.get("/salary-history")
+def get_salary_history(
+    month: int = None,
+    year: int = None,
+    db: Session = Depends(get_db)
+):
+    """Get salary payment history with optional month/year filter."""
+    query = db.query(EmployeeSalary).filter(EmployeeSalary.is_paid == True)
+
+    if month is not None:
+        query = query.filter(EmployeeSalary.month == month)
+    if year is not None:
+        query = query.filter(EmployeeSalary.year == year)
+
+    salaries = query.order_by(
+        EmployeeSalary.paid_date.desc(),
+        EmployeeSalary.employee_name
+    ).all()
+
+    return [
+        {
+            "id": s.id,
+            "employee_name": s.employee_name,
+            "amount": s.monthly_salary,
+            "paid_date": str(s.paid_date) if s.paid_date else None,
+            "month": s.month,
+            "year": s.year,
+        }
+        for s in salaries
+    ]

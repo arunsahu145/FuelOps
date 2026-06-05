@@ -1,9 +1,10 @@
 """
-Petrol Pump Finance Manager ERP — Expense Page (v2)
-Full-width form, collapsible history with delete, toast notifications.
+Petrol Pump Finance Manager ERP — Expense Page (v3)
+Full-width form, always-visible history filtered by selected date,
+manual category input, toast notifications.
 """
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QComboBox,
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
     QLineEdit, QPushButton, QMessageBox, QDateEdit, QScrollArea
 )
 from PySide6.QtCore import Qt, QDate
@@ -12,7 +13,6 @@ from ui.theme import TEXT_PRIMARY, TEXT_SECONDARY, ACCENT_PRIMARY
 from ui.components.data_table import DataTable
 from ui.api_client import client
 from utils.helpers import format_currency
-from config import EXPENSE_CATEGORIES
 
 
 class ExpensePage(QWidget):
@@ -70,6 +70,7 @@ class ExpensePage(QWidget):
         self.date_edit = QDateEdit(self)
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setDate(QDate.currentDate())
+        self.date_edit.dateChanged.connect(self._on_date_changed)
         d_vbox.addWidget(self.date_edit)
         row.addLayout(d_vbox)
 
@@ -77,9 +78,10 @@ class ExpensePage(QWidget):
         c_lbl = QLabel("CATEGORY", self)
         c_lbl.setObjectName("FormLabel")
         c_vbox.addWidget(c_lbl)
-        self.category_combo = QComboBox(self)
-        self.category_combo.addItems(EXPENSE_CATEGORIES)
-        c_vbox.addWidget(self.category_combo)
+        self.category_input = QLineEdit(self)
+        self.category_input.setPlaceholderText("e.g., Electricity, Maintenance, Repairs...")
+        self.category_input.setMinimumWidth(180)
+        c_vbox.addWidget(self.category_input)
         row.addLayout(c_vbox)
 
         a_vbox = QVBoxLayout()
@@ -112,53 +114,58 @@ class ExpensePage(QWidget):
 
         layout.addWidget(form_frame)
 
-        QWidget.setTabOrder(self.date_edit, self.category_combo)
-        QWidget.setTabOrder(self.category_combo, self.amount_input)
+        QWidget.setTabOrder(self.date_edit, self.category_input)
+        QWidget.setTabOrder(self.category_input, self.amount_input)
         QWidget.setTabOrder(self.amount_input, self.desc_input)
 
-        # Collapsible History with delete
-        hist_row = QHBoxLayout()
-        self.history_toggle = QPushButton("  📋 Show Recent Expenses ▼", self)
-        self.history_toggle.setObjectName("ToggleHistoryBtn")
-        self.history_toggle.setFixedWidth(260)
-        self.history_toggle.clicked.connect(self._toggle_history)
-        hist_row.addWidget(self.history_toggle)
-        hist_row.addStretch()
-        layout.addLayout(hist_row)
-
-        self.history_frame = QFrame(self)
-        self.history_frame.setObjectName("SmartCard")
-        self.history_frame.setVisible(False)
-        hl = QVBoxLayout(self.history_frame)
+        # ── Always-visible expense history for selected date ──
+        hist_frame = QFrame(self)
+        hist_frame.setObjectName("SmartCard")
+        hl = QVBoxLayout(hist_frame)
         hl.setContentsMargins(16, 16, 16, 16)
+        hl.setSpacing(10)
+
+        self.hist_title = QLabel("EXPENSES FOR TODAY", self)
+        self.hist_title.setStyleSheet(
+            f"font-size: 13px; font-weight: bold; color: {TEXT_PRIMARY}; "
+            f"letter-spacing: 0.5px;"
+        )
+        hl.addWidget(self.hist_title)
 
         self.table = DataTable(
             ["Date", "Category", "Amount", "Description"],
             self, enable_delete=True
         )
+        self.table.setMinimumHeight(450)
         self.table.row_delete_requested.connect(self._delete_expense)
         hl.addWidget(self.table)
-        layout.addWidget(self.history_frame)
+        layout.addWidget(hist_frame)
 
         layout.addStretch()
 
     def load_data(self):
         self.amount_input.clear_value()
         self.desc_input.clear()
+        self.category_input.clear()
         self.amount_input.setFocus()
+        self._refresh_table()
 
-    def _toggle_history(self):
-        visible = not self.history_frame.isVisible()
-        self.history_frame.setVisible(visible)
-        self.history_toggle.setText(
-            "  📋 Hide Recent Expenses ▲" if visible else "  📋 Show Recent Expenses ▼"
-        )
-        if visible:
-            self._refresh_table()
+    def _on_date_changed(self):
+        """Refresh expense history when date is changed."""
+        self._refresh_table()
 
     def _refresh_table(self):
+        """Load expenses only for the selected date."""
+        selected_date = self.date_edit.date().toString("yyyy-MM-dd")
+        # Update the title to reflect the date
+        display_date = self.date_edit.date().toString("dd MMM yyyy")
+        self.hist_title.setText(f"EXPENSES FOR {display_date.upper()}")
+
         try:
-            expenses = client.get("/api/expense/list")
+            expenses = client.get("/api/expense/list", params={
+                "start_date": selected_date,
+                "end_date": selected_date,
+            })
             rows = []
             ids = []
             for e in expenses:
@@ -196,10 +203,15 @@ class ExpensePage(QWidget):
                 self._toast.show_message("Enter a positive expense amount!", "error")
             return
 
+        category = self.category_input.text().strip()
+        if not category:
+            if self._toast:
+                self._toast.show_message("Enter an expense category!", "error")
+            return
+
         amount = amount_val
 
         edate = self.date_edit.date().toString("yyyy-MM-dd")
-        category = self.category_combo.currentText()
         desc = self.desc_input.text().strip()
 
         try:
@@ -217,10 +229,10 @@ class ExpensePage(QWidget):
 
             self.amount_input.clear_value()
             self.desc_input.clear()
+            self.category_input.clear()
             self.amount_input.setFocus()
 
-            if self.history_frame.isVisible():
-                self._refresh_table()
+            self._refresh_table()
 
         except Exception as e:
             if self._toast:

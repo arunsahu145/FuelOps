@@ -1,12 +1,13 @@
 """
-Petrol Pump Finance Manager ERP — Employee Management Page
+Petrol Pump Finance Manager ERP — Employee Management Page (v2)
 Add, view, edit, and delete employees with name, age, phone, and salary.
+Includes salary payment history with month filter.
 """
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QLineEdit,
     QPushButton, QMessageBox, QScrollArea, QGridLayout, QSizePolicy,
     QSpinBox, QMenu, QDialog, QDialogButtonBox, QDateEdit, QFormLayout,
-    QWidgetAction
+    QWidgetAction, QComboBox
 )
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QAction
@@ -199,6 +200,64 @@ class EmployeePage(QWidget):
         table_layout.addWidget(self.table)
 
         layout.addWidget(table_frame)
+
+        # ── Salary Payment History ──
+        salary_frame = QFrame(self)
+        salary_frame.setObjectName("SmartCard")
+        salary_layout = QVBoxLayout(salary_frame)
+        salary_layout.setContentsMargins(16, 16, 16, 16)
+        salary_layout.setSpacing(10)
+
+        # Header row with title and month filter
+        salary_header = QHBoxLayout()
+        salary_title = QLabel("SALARY PAYMENT HISTORY", self)
+        salary_title.setStyleSheet(
+            f"font-size: 13px; font-weight: bold; color: {TEXT_PRIMARY}; "
+            f"letter-spacing: 0.5px;"
+        )
+        salary_header.addWidget(salary_title)
+        salary_header.addStretch()
+
+        # Month filter
+        filter_lbl = QLabel("FILTER BY MONTH:", self)
+        filter_lbl.setStyleSheet(
+            f"font-size: 11px; font-weight: 600; color: {TEXT_SECONDARY};"
+        )
+        salary_header.addWidget(filter_lbl)
+
+        self.salary_month_combo = QComboBox(self)
+        self.salary_month_combo.setMinimumWidth(140)
+        months = [
+            "All Months", "January", "February", "March", "April",
+            "May", "June", "July", "August", "September",
+            "October", "November", "December"
+        ]
+        self.salary_month_combo.addItems(months)
+        # Default to current month
+        current_month = QDate.currentDate().month()
+        self.salary_month_combo.setCurrentIndex(current_month)
+        self.salary_month_combo.currentIndexChanged.connect(self._refresh_salary_history)
+        salary_header.addWidget(self.salary_month_combo)
+
+        self.salary_year_combo = QComboBox(self)
+        self.salary_year_combo.setMinimumWidth(90)
+        current_year = QDate.currentDate().year()
+        for y in range(current_year - 3, current_year + 2):
+            self.salary_year_combo.addItem(str(y))
+        self.salary_year_combo.setCurrentText(str(current_year))
+        self.salary_year_combo.currentIndexChanged.connect(self._refresh_salary_history)
+        salary_header.addWidget(self.salary_year_combo)
+
+        salary_layout.addLayout(salary_header)
+
+        self.salary_table = DataTable(
+            ["Employee Name", "Amount Paid", "Date Paid"],
+            self
+        )
+        self.salary_table.setMinimumHeight(350)
+        salary_layout.addWidget(self.salary_table)
+
+        layout.addWidget(salary_frame)
         layout.addStretch()
 
     def _make_stat_card(self, label: str, value: str, accent: str) -> QFrame:
@@ -247,6 +306,7 @@ class EmployeePage(QWidget):
     def load_data(self):
         """Called when page is navigated to."""
         self._refresh_table()
+        self._refresh_salary_history()
 
     def _refresh_table(self):
         try:
@@ -275,6 +335,30 @@ class EmployeePage(QWidget):
 
         except Exception as e:
             print(f"Error loading employees: {e}")
+
+    def _refresh_salary_history(self):
+        """Load salary payment history with month/year filter."""
+        try:
+            params = {}
+            month_idx = self.salary_month_combo.currentIndex()
+            if month_idx > 0:  # 0 = "All Months"
+                params["month"] = month_idx
+
+            year_text = self.salary_year_combo.currentText()
+            if year_text:
+                params["year"] = int(year_text)
+
+            salaries = client.get("/api/employees/salary-history", params=params)
+            rows = []
+            for s in salaries:
+                rows.append((
+                    s["employee_name"],
+                    format_currency(s["amount"]),
+                    s["paid_date"] or "-",
+                ))
+            self.salary_table.populate(rows)
+        except Exception as e:
+            print(f"Error loading salary history: {e}")
 
     # ── CRUD Operations ──
 
@@ -387,6 +471,8 @@ class EmployeePage(QWidget):
                     f"{format_currency(result.get('amount', amount))}",
                     "success"
                 )
+            # Refresh salary history after payment
+            self._refresh_salary_history()
         except Exception as e:
             if self._toast:
                 self._toast.show_message(f"Error: {e}", "error", 5000)
