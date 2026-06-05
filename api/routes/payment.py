@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/payment", tags=["Payment Collections"])
 def create_payment(request: PaymentCreateRequest, db: Session = Depends(get_db)):
     """Record a new payment collection."""
     # Validate payment method
-    valid_methods = ["Cash", "Paytm", "PhonePe", "CCMS"]
+    valid_methods = ["Cash", "Paytm", "PhonePe", "CCMS", "Commission"]
     if request.payment_method not in valid_methods:
         raise HTTPException(
             status_code=400,

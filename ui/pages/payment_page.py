@@ -1,6 +1,7 @@
 """
-Petrol Pump Finance Manager ERP — Collections Page (v3)
+Petrol Pump Finance Manager ERP — Collections Page (v4)
 Shift-wise layout: All 4 payment methods listed inline per shift.
+Commission entry for expected cash adjustment.
 Collapsible history with delete support. Toast notifications.
 """
 from PySide6.QtWidgets import (
@@ -31,6 +32,8 @@ METHOD_COLORS = {
     "PhonePe": "#a855f7",
     "CCMS": "#f59e0b",
 }
+
+COMMISSION_COLOR = "#ec4899"  # Pink accent for commission
 
 
 class PaymentMethodRow(QFrame):
@@ -303,6 +306,7 @@ class PaymentPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._toast = None
+        self._commission_record_id = None
         self._init_ui()
 
     def set_toast(self, toast):
@@ -345,6 +349,79 @@ class PaymentPage(QWidget):
         header.addWidget(self.date_picker)
         layout.addLayout(header)
 
+        # ── Commission Section ──
+        comm_frame = QFrame(self)
+        comm_frame.setObjectName("CommissionCard")
+        comm_frame.setStyleSheet(f"""
+            QFrame#CommissionCard {{
+                background-color: {BG_SURFACE};
+                border: 1px solid {BORDER_COLOR};
+                border-left: 4px solid {COMMISSION_COLOR};
+                border-radius: 12px;
+            }}
+        """)
+        comm_layout = QHBoxLayout(comm_frame)
+        comm_layout.setContentsMargins(20, 14, 20, 14)
+        comm_layout.setSpacing(16)
+
+        comm_icon = QLabel("💰", self)
+        comm_icon.setStyleSheet("font-size: 22px;")
+        comm_layout.addWidget(comm_icon)
+
+        comm_title_vbox = QVBoxLayout()
+        comm_title_vbox.setSpacing(2)
+        comm_title = QLabel("COMMISSION", self)
+        comm_title.setStyleSheet(
+            f"font-size: 14px; font-weight: bold; color: {COMMISSION_COLOR}; "
+            f"letter-spacing: 0.5px;"
+        )
+        comm_subtitle = QLabel(
+            "Extra cash received (added to expected cash collection)", self
+        )
+        comm_subtitle.setStyleSheet(
+            f"font-size: 10px; color: {TEXT_SECONDARY};"
+        )
+        comm_title_vbox.addWidget(comm_title)
+        comm_title_vbox.addWidget(comm_subtitle)
+        comm_layout.addLayout(comm_title_vbox)
+
+        comm_layout.addStretch()
+
+        self.commission_input = IndianCurrencyLineEdit(self, placeholder="₹ 0.00")
+        self.commission_input.setFixedWidth(180)
+        self.commission_input.setFixedHeight(36)
+        self.commission_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {BG_MAIN};
+                border: 1.5px solid {BORDER_COLOR};
+                border-radius: 6px;
+                padding: 4px 10px;
+                color: {TEXT_PRIMARY};
+                font-size: 15px;
+                font-weight: 600;
+                font-family: 'Consolas', monospace;
+            }}
+            QLineEdit:focus {{
+                border-color: {COMMISSION_COLOR};
+                background-color: {BG_SURFACE};
+            }}
+        """)
+        comm_layout.addWidget(self.commission_input)
+
+        self.commission_status = QLabel("", self)
+        self.commission_status.setStyleSheet(
+            f"font-size: 12px; color: {TEXT_SECONDARY};"
+        )
+        comm_layout.addWidget(self.commission_status)
+
+        self.commission_save_btn = QPushButton("  Save  ", self)
+        self.commission_save_btn.setObjectName("SuccessButton")
+        self.commission_save_btn.setFixedHeight(36)
+        self.commission_save_btn.clicked.connect(self._save_commission)
+        comm_layout.addWidget(self.commission_save_btn)
+
+        layout.addWidget(comm_frame)
+
         # Shift 1 Section
         self.shift1_section = ShiftPaymentSection(1, parent_page=self, parent=self)
         layout.addWidget(self.shift1_section)
@@ -380,6 +457,101 @@ class PaymentPage(QWidget):
 
         layout.addStretch()
 
+    # ── Commission Methods ──
+
+    def _save_commission(self):
+        """Save or update the commission entry for the selected date."""
+        amount = self.commission_input.get_value()
+        date_str = self.date_picker.get_date_str()
+
+        if amount <= 0:
+            if self._toast:
+                self._toast.show_message("Enter a positive commission amount!", "error")
+            return
+
+        try:
+            # If there's already a commission for this date, delete it first
+            if self._commission_record_id is not None:
+                client.delete(f"/api/payment/entry/{self._commission_record_id}")
+
+            resp = client.post("/api/payment/entry", data={
+                "payment_date": date_str,
+                "shift_number": None,
+                "payment_method": "Commission",
+                "amount": amount,
+                "notes": "Commission added to expected cash"
+            })
+            self._commission_record_id = resp["id"]
+            self._set_commission_saved(amount)
+
+            if self._toast:
+                self._toast.show_message(
+                    f"Commission saved: {format_currency(amount)}", "success"
+                )
+        except Exception as e:
+            if self._toast:
+                self._toast.show_message(f"Error saving commission: {e}", "error", 5000)
+
+    def _set_commission_saved(self, amount: float):
+        """Mark commission input as saved."""
+        self.commission_input.set_value(amount)
+        self.commission_input.setReadOnly(True)
+        self.commission_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {BG_SURFACE_LIGHT}40;
+                border: 1px solid {ACCENT_SUCCESS}60;
+                border-radius: 6px;
+                padding: 4px 10px;
+                color: {TEXT_SECONDARY};
+                font-size: 15px;
+                font-weight: 600;
+                font-family: 'Consolas', monospace;
+            }}
+        """)
+        self.commission_status.setText(f"✓ {format_currency(amount)}")
+        self.commission_status.setStyleSheet(
+            f"font-size: 12px; color: {ACCENT_SUCCESS}; font-weight: 600;"
+        )
+        self.commission_save_btn.setText("  Saved ✓  ")
+
+    def _reset_commission(self):
+        """Reset commission input to editable state."""
+        self._commission_record_id = None
+        self.commission_input.clear()
+        self.commission_input.setReadOnly(False)
+        self.commission_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {BG_MAIN};
+                border: 1.5px solid {BORDER_COLOR};
+                border-radius: 6px;
+                padding: 4px 10px;
+                color: {TEXT_PRIMARY};
+                font-size: 15px;
+                font-weight: 600;
+                font-family: 'Consolas', monospace;
+            }}
+            QLineEdit:focus {{
+                border-color: {COMMISSION_COLOR};
+                background-color: {BG_SURFACE};
+            }}
+        """)
+        self.commission_status.setText("")
+        self.commission_status.setStyleSheet(
+            f"font-size: 12px; color: {TEXT_SECONDARY};"
+        )
+        self.commission_save_btn.setText("  Save  ")
+
+    def _load_commission(self, payments: list):
+        """Load existing commission entry for the selected date."""
+        self._reset_commission()
+        for p in payments:
+            if p.get("payment_method") == "Commission":
+                self._commission_record_id = p["id"]
+                self._set_commission_saved(p["amount"])
+                break
+
+    # ── Data Loading ──
+
     def load_data(self):
         """Load existing payment entries for the selected date into shift sections."""
         date_str = self.date_picker.get_date_str()
@@ -388,8 +560,12 @@ class PaymentPage(QWidget):
                 "start_date": date_str,
                 "end_date": date_str
             })
-            self.shift1_section.load_existing_entries(payments)
-            self.shift2_section.load_existing_entries(payments)
+            # Filter out commission for shift loading
+            regular_payments = [p for p in payments if p.get("payment_method") != "Commission"]
+            self.shift1_section.load_existing_entries(regular_payments)
+            self.shift2_section.load_existing_entries(regular_payments)
+            # Load commission separately
+            self._load_commission(payments)
         except Exception as e:
             print(f"Error loading payments: {e}")
 
@@ -408,6 +584,7 @@ class PaymentPage(QWidget):
             self._refresh_table()
 
     def _refresh_table(self):
+        """Show collection log — excludes commission entries."""
         date_str = self.date_picker.get_date_str()
         try:
             payments = client.get("/api/payment/list", params={
@@ -417,6 +594,9 @@ class PaymentPage(QWidget):
             rows = []
             ids = []
             for p in payments:
+                # Skip commission entries from collection log
+                if p.get("payment_method") == "Commission":
+                    continue
                 shift_text = f"Shift {p['shift_number']}" if p.get('shift_number') else "-"
                 rows.append((
                     p["payment_date"],

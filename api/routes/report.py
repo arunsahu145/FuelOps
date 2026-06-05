@@ -118,10 +118,14 @@ def get_daily_summary(
 
     # ── Payments ──
     payments = db.query(Payment).filter(Payment.payment_date == report_date).all()
-    total_payments = sum(p.amount for p in payments)
+
+    # Separate commission from regular payments
+    commission_total = sum(p.amount for p in payments if p.payment_method == "Commission")
+    regular_payments = [p for p in payments if p.payment_method != "Commission"]
+    total_payments = sum(p.amount for p in regular_payments)
 
     pay_methods = {"Cash": 0.0, "Paytm": 0.0, "PhonePe": 0.0, "CCMS": 0.0}
-    for p in payments:
+    for p in regular_payments:
         if p.payment_method in pay_methods:
             pay_methods[p.payment_method] += p.amount
         else:
@@ -164,6 +168,7 @@ def get_daily_summary(
     )
     expected_cash_collection = (
         total_sales - non_cash_collections - total_expenses - total_salaries
+        + commission_total
     )
     payment_shortfall = cash_collection - expected_cash_collection
 
@@ -367,10 +372,14 @@ def get_monthly_summary(
     payments = db.query(Payment).filter(
         Payment.payment_date >= first_day, Payment.payment_date <= last_day
     ).all()
-    total_payments = sum(p.amount for p in payments)
+
+    # Separate commission from regular payments
+    commission_total = sum(p.amount for p in payments if p.payment_method == "Commission")
+    regular_payments = [p for p in payments if p.payment_method != "Commission"]
+    total_payments = sum(p.amount for p in regular_payments)
 
     pay_methods = {"Cash": 0.0, "Paytm": 0.0, "PhonePe": 0.0, "CCMS": 0.0}
-    for p in payments:
+    for p in regular_payments:
         if p.payment_method in pay_methods:
             pay_methods[p.payment_method] += p.amount
         else:
@@ -387,6 +396,7 @@ def get_monthly_summary(
     expected_cash_collection = (
         total_sales - non_cash_collections -
         total_daily_expenses - total_monthly_expenses - total_salaries
+        + commission_total
     )
     payment_shortfall = cash_collection - expected_cash_collection
 
