@@ -19,6 +19,7 @@ class ExpensePage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._toast = None
+        self._loaded = False
         self._init_ui()
 
     def set_toast(self, toast):
@@ -144,10 +145,11 @@ class ExpensePage(QWidget):
         layout.addStretch()
 
     def load_data(self):
-        self.amount_input.clear_value()
-        self.desc_input.clear()
-        self.category_input.clear()
-        self.amount_input.setFocus()
+        if not self._loaded:
+            self.amount_input.clear_value()
+            self.desc_input.clear()
+            self.category_input.clear()
+            self._loaded = True
         self._refresh_table()
 
     def _on_date_changed(self):

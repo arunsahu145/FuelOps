@@ -431,6 +431,7 @@ class PaymentPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._toast = None
+        self._last_loaded_date = None
         self._init_ui()
 
     def set_toast(self, toast):
@@ -511,6 +512,11 @@ class PaymentPage(QWidget):
     def load_data(self):
         """Load existing payment entries for the selected date into shift sections."""
         date_str = self.date_picker.get_date_str()
+
+        # Skip reload if date hasn't changed — preserves unsaved inputs on tab switch
+        if self._last_loaded_date == date_str:
+            return
+
         try:
             payments = client.get("/api/payment/list", params={
                 "start_date": date_str,
@@ -518,10 +524,12 @@ class PaymentPage(QWidget):
             })
             self.shift1_section.load_existing_entries(payments)
             self.shift2_section.load_existing_entries(payments)
+            self._last_loaded_date = date_str
         except Exception as e:
             print(f"Error loading payments: {e}")
 
     def _on_date_changed(self):
+        self._last_loaded_date = None  # Force reload on date change
         self.load_data()
         if self.history_frame.isVisible():
             self._refresh_table()

@@ -58,6 +58,7 @@ class EmployeePage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._toast = None
+        self._loaded = False
         self._init_ui()
 
     def set_toast(self, toast):
@@ -305,8 +306,11 @@ class EmployeePage(QWidget):
 
     def load_data(self):
         """Called when page is navigated to."""
+        if self._loaded:
+            return
         self._refresh_table()
         self._refresh_salary_history()
+        self._loaded = True
 
     def _refresh_table(self):
         try:

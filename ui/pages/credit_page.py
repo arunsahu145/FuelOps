@@ -21,6 +21,7 @@ class CreditPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._toast = None
+        self._loaded = False
         self.customers = []
         self.customer_rows = []
         self.outstanding_rows = []
@@ -315,12 +316,15 @@ class CreditPage(QWidget):
         self.tabs.addTab(tab, "Aging Report")
 
     def load_data(self):
+        if self._loaded:
+            return
         self._load_customers()
         self._load_credits()
         self._load_outstanding()
         self._load_repayments()
         self._load_summary()
         self._load_aging()
+        self._loaded = True
 
     def _load_summary(self):
         try:

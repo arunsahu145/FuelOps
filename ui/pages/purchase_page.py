@@ -18,6 +18,7 @@ class PurchasePage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._toast = None
+        self._loaded = False
         self.buying_price_cache = 0.0
         self._init_ui()
 
@@ -173,6 +174,8 @@ class PurchasePage(QWidget):
         self.is_calculating = False
 
     def load_data(self):
+        if self._loaded:
+            return
         try:
             fuels = client.get("/api/fuel/types")
             self.fuel_combo.blockSignals(True)
@@ -181,6 +184,7 @@ class PurchasePage(QWidget):
                 self.fuel_combo.addItem(f["name"], f["id"])
             self.fuel_combo.blockSignals(False)
             self._on_fuel_changed()
+            self._loaded = True
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed loading purchase data: {e}")
 
