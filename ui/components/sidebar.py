@@ -41,16 +41,15 @@ class Sidebar(QFrame):
             ("⛽  Fuel Prices", "fuel"),
             ("🔧  Nozzle Map", "nozzle"),
             ("📝  Shift Entry", "shift"),
-            ("📈  Sales", "sales"),
-            ("🛢️  Purchases", "purchase"),
-            ("💰  Collections", "payment"),
             ("📋  Expenses", "expense"),
+            ("💰  Collections", "payment"),
+            ("🛢️  Purchases", "purchase"),
+            ("💳  Credit Ledger", "credit"),
             ("👷  Employees", "employee"),
+            ("📈  Sales", "sales"),
             ("📑  Reports", "report"),
             ("⚙️  Backup", "backup"),
         ]
-
-        menu_items.insert(7, ("💳  Credit Ledger", "credit"))
 
         for display_name, page_id in menu_items:
             btn = QPushButton(f" {display_name}", self)
