@@ -253,9 +253,10 @@ class EmployeePage(QWidget):
 
         self.salary_table = DataTable(
             ["Employee Name", "Amount Paid", "Date Paid"],
-            self
+            self, enable_delete=True
         )
         self.salary_table.setMinimumHeight(350)
+        self.salary_table.row_delete_requested.connect(self._delete_salary_payment)
         salary_layout.addWidget(self.salary_table)
 
         layout.addWidget(salary_frame)
@@ -354,13 +355,15 @@ class EmployeePage(QWidget):
 
             salaries = client.get("/api/employees/salary-history", params=params)
             rows = []
+            ids = []
             for s in salaries:
                 rows.append((
                     s["employee_name"],
                     format_currency(s["amount"]),
                     s["paid_date"] or "-",
                 ))
-            self.salary_table.populate(rows)
+                ids.append(s["id"])
+            self.salary_table.populate(rows, row_ids=ids)
         except Exception as e:
             print(f"Error loading salary history: {e}")
 
@@ -495,6 +498,24 @@ class EmployeePage(QWidget):
             if self._toast:
                 self._toast.show_message("Employee deleted", "success")
             self._refresh_table()
+        except Exception as e:
+            if self._toast:
+                self._toast.show_message(f"Error: {e}", "error", 5000)
+
+    def _delete_salary_payment(self, payment_id: int):
+        reply = QMessageBox.question(
+            self, "Confirm Delete",
+            "Are you sure you want to delete this salary payment entry?\n"
+            "This action cannot be undone.",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+        try:
+            client.delete(f"/api/employees/salary-payments/{payment_id}")
+            if self._toast:
+                self._toast.show_message("Salary payment deleted", "success")
+            self._refresh_salary_history()
         except Exception as e:
             if self._toast:
                 self._toast.show_message(f"Error: {e}", "error", 5000)

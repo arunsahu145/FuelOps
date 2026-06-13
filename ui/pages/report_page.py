@@ -468,8 +468,158 @@ class ReportPage(QWidget):
 
         mgmt_tabs.addTab(mexp_widget, "🏢 Monthly Expenses")
 
+        # ── Bank Deposits Tab ──
+        bd_widget = QWidget()
+        bd_layout = QVBoxLayout(bd_widget)
+        bd_layout.setContentsMargins(14, 14, 14, 14)
+        bd_layout.setSpacing(12)
+
+        # Header with total
+        bd_header = QHBoxLayout()
+        bd_header.setSpacing(12)
+
+        bd_section_title = QLabel("BANK DEPOSITS", self)
+        bd_section_title.setStyleSheet(
+            f"font-size: 12px; font-weight: bold; color: {TEXT_SECONDARY}; "
+            f"letter-spacing: 0.5px;"
+        )
+        bd_header.addWidget(bd_section_title)
+        bd_header.addStretch()
+
+        self.bd_total_label = QLabel("Total Deposited: ₹0.00", self)
+        self.bd_total_label.setStyleSheet(
+            f"font-size: 14px; font-weight: bold; color: {ACCENT_PRIMARY}; "
+            f"font-family: 'Consolas', monospace;"
+        )
+        bd_header.addWidget(self.bd_total_label)
+
+        bd_layout.addLayout(bd_header)
+
+        # Deposit form — 4 fields in a row
+        bd_form = QHBoxLayout()
+        bd_form.setSpacing(10)
+
+        wc_vbox = QVBoxLayout()
+        wc_lbl = QLabel("WORKING CAPITAL", self)
+        wc_lbl.setObjectName("FormLabel")
+        wc_vbox.addWidget(wc_lbl)
+        self.bd_wc_input = IndianCurrencyLineEdit(self, placeholder="₹ 0.00")
+        self.bd_wc_input.setMinimumWidth(130)
+        wc_vbox.addWidget(self.bd_wc_input)
+        bd_form.addLayout(wc_vbox)
+
+        solar_vbox = QVBoxLayout()
+        solar_lbl = QLabel("SOLAR", self)
+        solar_lbl.setObjectName("FormLabel")
+        solar_vbox.addWidget(solar_lbl)
+        self.bd_solar_input = IndianCurrencyLineEdit(self, placeholder="₹ 0.00")
+        self.bd_solar_input.setMinimumWidth(130)
+        solar_vbox.addWidget(self.bd_solar_input)
+        bd_form.addLayout(solar_vbox)
+
+        truck_vbox = QVBoxLayout()
+        truck_lbl = QLabel("TRUCK", self)
+        truck_lbl.setObjectName("FormLabel")
+        truck_vbox.addWidget(truck_lbl)
+        self.bd_truck_input = IndianCurrencyLineEdit(self, placeholder="₹ 0.00")
+        self.bd_truck_input.setMinimumWidth(130)
+        truck_vbox.addWidget(self.bd_truck_input)
+        bd_form.addLayout(truck_vbox)
+
+        topup_vbox = QVBoxLayout()
+        topup_lbl = QLabel("TOP UP FINANCE", self)
+        topup_lbl.setObjectName("FormLabel")
+        topup_vbox.addWidget(topup_lbl)
+        self.bd_topup_input = IndianCurrencyLineEdit(self, placeholder="₹ 0.00")
+        self.bd_topup_input.setMinimumWidth(130)
+        topup_vbox.addWidget(self.bd_topup_input)
+        bd_form.addLayout(topup_vbox)
+
+        # Button row for Save / Update / Cancel
+        bd_btn_vbox = QVBoxLayout()
+        bd_btn_vbox.addStretch()
+
+        self.bd_save_btn = QPushButton("  + Save Deposit  ", self)
+        self.bd_save_btn.setObjectName("SuccessButton")
+        self.bd_save_btn.setMinimumHeight(34)
+        self.bd_save_btn.clicked.connect(self._save_bank_deposit)
+        bd_btn_vbox.addWidget(self.bd_save_btn)
+
+        self.bd_cancel_btn = QPushButton("  ✕ Cancel  ", self)
+        self.bd_cancel_btn.setMinimumHeight(30)
+        self.bd_cancel_btn.setStyleSheet(f"""
+            QPushButton {{
+                color: {ACCENT_DANGER};
+                font-weight: 600;
+                font-size: 11px;
+                border: 1px solid {ACCENT_DANGER}40;
+                border-radius: 4px;
+                padding: 4px 12px;
+            }}
+            QPushButton:hover {{
+                background-color: {ACCENT_DANGER}15;
+            }}
+        """)
+        self.bd_cancel_btn.clicked.connect(self._cancel_bd_edit)
+        self.bd_cancel_btn.setVisible(False)
+        bd_btn_vbox.addWidget(self.bd_cancel_btn)
+
+        bd_form.addLayout(bd_btn_vbox)
+        self._bd_edit_id = None  # Track which entry is being edited
+
+        bd_form.addStretch()
+        bd_layout.addLayout(bd_form)
+
+        # Breakdown summary card
+        self.bd_breakdown_frame = QFrame(self)
+        self.bd_breakdown_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {BG_MAIN};
+                border: 1px solid {BORDER_COLOR};
+                border-radius: 8px;
+            }}
+        """)
+        bdb_layout = QHBoxLayout(self.bd_breakdown_frame)
+        bdb_layout.setContentsMargins(16, 10, 16, 10)
+        bdb_layout.setSpacing(24)
+
+        self.bd_wc_summary = QLabel("Working Capital: ₹0.00", self)
+        self.bd_wc_summary.setStyleSheet(f"font-size: 12px; color: {TEXT_PRIMARY}; font-weight: 600;")
+        bdb_layout.addWidget(self.bd_wc_summary)
+
+        self.bd_solar_summary = QLabel("Solar: ₹0.00", self)
+        self.bd_solar_summary.setStyleSheet(f"font-size: 12px; color: {TEXT_PRIMARY}; font-weight: 600;")
+        bdb_layout.addWidget(self.bd_solar_summary)
+
+        self.bd_truck_summary = QLabel("Truck: ₹0.00", self)
+        self.bd_truck_summary.setStyleSheet(f"font-size: 12px; color: {TEXT_PRIMARY}; font-weight: 600;")
+        bdb_layout.addWidget(self.bd_truck_summary)
+
+        self.bd_topup_summary = QLabel("Top Up: ₹0.00", self)
+        self.bd_topup_summary.setStyleSheet(f"font-size: 12px; color: {TEXT_PRIMARY}; font-weight: 600;")
+        bdb_layout.addWidget(self.bd_topup_summary)
+
+        bdb_layout.addStretch()
+        bd_layout.addWidget(self.bd_breakdown_frame)
+
+        # Deposit history table (click a row to edit)
+        self.bd_table = DataTable(
+            ["Working Capital", "Solar", "Truck", "Top Up Finance", "Total", "Date"],
+            self, enable_delete=True
+        )
+        self.bd_table.setMinimumHeight(250)
+        self.bd_table.row_delete_requested.connect(self._delete_bank_deposit)
+        self.bd_table.cellClicked.connect(self._on_bd_row_clicked)
+        bd_layout.addWidget(self.bd_table)
+
+        bd_hint = QLabel("💡 Click a row to edit its values", self)
+        bd_hint.setStyleSheet(f"font-size: 10px; color: {TEXT_SECONDARY}; font-style: italic;")
+        bd_layout.addWidget(bd_hint)
+
+        mgmt_tabs.addTab(bd_widget, "🏦 Bank Deposits")
+
         # Set minimum height for the management tabs to look spacious
-        mgmt_tabs.setMinimumHeight(420)
+        mgmt_tabs.setMinimumHeight(500)
         mgmt_layout.addWidget(mgmt_tabs)
         layout.addWidget(self.monthly_mgmt_frame)
 
@@ -802,9 +952,10 @@ class ReportPage(QWidget):
                 ))
             self.expense_table.populate(exp_rows)
 
-            # Load salaries and monthly expenses
+            # Load salaries, monthly expenses, and bank deposits
             self._refresh_salary_table()
             self._refresh_mexp_table()
+            self._refresh_bank_deposits()
 
         except Exception as e:
             print(f"Error loading monthly report: {e}")
@@ -1136,3 +1287,149 @@ class ReportPage(QWidget):
             self.mexp_total_label.setText(f"Total: {format_currency(total_mexp)}")
         except Exception as e:
             print(f"Error loading monthly expenses: {e}")
+
+    # ── Bank Deposit Management ──
+
+    def _save_bank_deposit(self):
+        wc = self.bd_wc_input.get_value()
+        solar = self.bd_solar_input.get_value()
+        truck = self.bd_truck_input.get_value()
+        topup = self.bd_topup_input.get_value()
+
+        total = wc + solar + truck + topup
+        if total <= 0:
+            if self._toast:
+                self._toast.show_message("Enter at least one deposit amount!", "error")
+            return
+
+        month = self.month_combo.currentData()
+        year = self.year_combo.currentData()
+
+        try:
+            from datetime import date as dt_date
+            data = {
+                "month": month,
+                "year": year,
+                "working_capital": wc,
+                "solar": solar,
+                "truck": truck,
+                "top_up_finance": topup,
+            }
+            if self._bd_edit_id:
+                client.put(f"/api/bank-deposit/entry/{self._bd_edit_id}", data=data)
+            else:
+                data["deposit_date"] = dt_date.today().isoformat()
+                client.post("/api/bank-deposit/entry", data=data)
+
+            # Clear inputs
+            self._cancel_bd_edit()
+
+            if self._toast:
+                self._toast.show_message(
+                    f"Bank deposit saved: {format_currency(total)}", "success"
+                )
+
+            self._refresh_bank_deposits()
+        except Exception as e:
+            if self._toast:
+                self._toast.show_message(f"Error: {e}", "error", 5000)
+
+    def _cancel_bd_edit(self):
+        self._bd_edit_id = None
+        self.bd_wc_input.clear_value()
+        self.bd_solar_input.clear_value()
+        self.bd_truck_input.clear_value()
+        self.bd_topup_input.clear_value()
+        self.bd_save_btn.setText("  + Save Deposit  ")
+        self.bd_cancel_btn.setVisible(False)
+
+    def _on_bd_row_clicked(self, row, col):
+        if col == self.bd_table.columnCount() - 1 and self.bd_table._enable_delete:
+            return # Ignore delete button clicks
+
+        if row >= len(self.bd_table._row_ids):
+            return
+
+        deposit_id = self.bd_table._row_ids[row]
+        month = self.month_combo.currentData()
+        year = self.year_combo.currentData()
+
+        try:
+            # Find the specific deposit
+            deposits = client.get("/api/bank-deposit/list", params={"month": month, "year": year})
+            deposit = next((d for d in deposits if d["id"] == deposit_id), None)
+            
+            if deposit:
+                self._bd_edit_id = deposit_id
+                self.bd_wc_input.set_value(deposit.get("working_capital", 0))
+                self.bd_solar_input.set_value(deposit.get("solar", 0))
+                self.bd_truck_input.set_value(deposit.get("truck", 0))
+                self.bd_topup_input.set_value(deposit.get("top_up_finance", 0))
+
+                self.bd_save_btn.setText("  Update Deposit  ")
+                self.bd_cancel_btn.setVisible(True)
+        except Exception as e:
+            print(f"Error loading deposit for edit: {e}")
+
+    def _delete_bank_deposit(self, deposit_id: int):
+        reply = QMessageBox.question(
+            self, "Confirm Delete", "Delete this bank deposit entry?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+        try:
+            client.delete(f"/api/bank-deposit/entry/{deposit_id}")
+            if self._toast:
+                self._toast.show_message("Bank deposit deleted", "success")
+            self._refresh_bank_deposits()
+        except Exception as e:
+            if self._toast:
+                self._toast.show_message(f"Error: {e}", "error", 5000)
+
+    def _refresh_bank_deposits(self):
+        month = self.month_combo.currentData()
+        year = self.year_combo.currentData()
+        if not month or not year:
+            return
+        try:
+            # Get summary for breakdown
+            summary = client.get("/api/bank-deposit/summary", params={
+                "month": month, "year": year
+            })
+            self.bd_wc_summary.setText(
+                f"Working Capital: {format_currency(summary.get('total_working_capital', 0))}"
+            )
+            self.bd_solar_summary.setText(
+                f"Solar: {format_currency(summary.get('total_solar', 0))}"
+            )
+            self.bd_truck_summary.setText(
+                f"Truck: {format_currency(summary.get('total_truck', 0))}"
+            )
+            self.bd_topup_summary.setText(
+                f"Top Up: {format_currency(summary.get('total_top_up_finance', 0))}"
+            )
+            self.bd_total_label.setText(
+                f"Total Deposited: {format_currency(summary.get('grand_total', 0))}"
+            )
+
+            # Get individual entries for history table
+            deposits = client.get("/api/bank-deposit/list", params={
+                "month": month, "year": year
+            })
+            rows = []
+            ids = []
+            for d in deposits:
+                rows.append((
+                    format_currency(d.get("working_capital", 0)),
+                    format_currency(d.get("solar", 0)),
+                    format_currency(d.get("truck", 0)),
+                    format_currency(d.get("top_up_finance", 0)),
+                    format_currency(d.get("total", 0)),
+                    d.get("deposit_date") or "-",
+                ))
+                ids.append(d["id"])
+            self.bd_table.populate(rows, row_ids=ids)
+
+        except Exception as e:
+            print(f"Error loading bank deposits: {e}")

@@ -60,6 +60,11 @@ class APIClient:
         response = self.client.post(endpoint, json=data)
         return self._handle_response(response)
 
+    def put(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Any:
+        """Perform a PUT request."""
+        response = self.client.put(endpoint, json=data)
+        return self._handle_response(response)
+
     def delete(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Any:
         """Perform a DELETE request."""
         response = self.client.delete(endpoint, params=params)

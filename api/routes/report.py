@@ -27,6 +27,7 @@ from api.schemas.report import (
     MonthlyFuelBreakdown,
     EmployeeSalaryEntry, EmployeeSalaryResponse,
     MonthlyExpenseEntry, MonthlyExpenseResponse,
+    MonthlyBankDepositResponse,
 )
 from utils.helpers import get_month_range
 
@@ -419,6 +420,20 @@ def get_monthly_summary(
     total_actual_purchases = float(sum(p.total_cost for p in actual_purchases))
     total_actual_litres_purchased = float(sum(p.litres_purchased for p in actual_purchases))
 
+    # ── Bank Deposits ──
+    from database.models import BankDeposit
+    bank_deposits = db.query(BankDeposit).filter_by(month=month, year=year).all()
+    bd_responses = [
+        MonthlyBankDepositResponse(
+            working_capital=bd.working_capital,
+            solar=bd.solar,
+            truck=bd.truck,
+            top_up_finance=bd.top_up_finance,
+            total=bd.working_capital + bd.solar + bd.truck + bd.top_up_finance,
+            deposit_date=bd.deposit_date
+        ) for bd in bank_deposits
+    ]
+
     return MonthlyReportSummary(
         month=month, year=year, is_closed=is_closed,
         total_sales=total_sales,
@@ -441,6 +456,7 @@ def get_monthly_summary(
         credit_received=float(credit_received),
         monthly_expenses=monthly_exp_responses,
         salaries=salary_responses,
+        bank_deposits=bd_responses,
     )
 
 

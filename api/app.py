@@ -26,7 +26,7 @@ def create_app() -> FastAPI:
     )
 
     # Import and include all route modules
-    from api.routes import auth, fuel, nozzle, shift, sales, purchase, payment, expense, dashboard, report, employee, alerts, backup, credit
+    from api.routes import auth, fuel, nozzle, shift, sales, purchase, payment, expense, dashboard, report, employee, alerts, backup, credit, bank_deposit
     app.include_router(auth.router, tags=["Auth"])
     app.include_router(fuel.router, tags=["Fuel"])
     app.include_router(nozzle.router, tags=["Nozzle"])
@@ -41,6 +41,7 @@ def create_app() -> FastAPI:
     app.include_router(employee.router, tags=["Employees"])
     app.include_router(alerts.router, tags=["Alerts"])
     app.include_router(backup.router, tags=["Backup"])
+    app.include_router(bank_deposit.router, tags=["Bank Deposits"])
 
     @app.on_event("startup")
     def startup():

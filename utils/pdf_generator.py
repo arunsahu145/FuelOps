@@ -464,6 +464,31 @@ def generate_monthly_pdf(summary_data: dict) -> str:
         ))
         elements.append(Spacer(1, 3 * mm))
 
+    # Bank Deposits table
+    bank_deposits = summary_data.get("bank_deposits", [])
+    if bank_deposits:
+        bd_rows = []
+        total_bd = 0.0
+        for bd in bank_deposits:
+            bd_rows.append([
+                str(bd.get("deposit_date") or "-"),
+                format_currency(bd.get("working_capital", 0)),
+                format_currency(bd.get("solar", 0)),
+                format_currency(bd.get("truck", 0)),
+                format_currency(bd.get("top_up_finance", 0)),
+                format_currency(bd.get("total", 0)),
+            ])
+            total_bd += bd.get("total", 0)
+        
+        elements.append(Paragraph("BANK DEPOSITS", styles["SectionHeader"]))
+        elements.append(_build_table(
+            ["Date", "Working Capital", "Solar", "Truck", "Top Up", "Total"],
+            bd_rows,
+            col_widths=[25 * mm, 30 * mm, 25 * mm, 25 * mm, 30 * mm, 35 * mm]
+        ))
+        elements.extend(_add_summary_row("Total Bank Deposits", format_currency(total_bd), styles))
+        elements.append(Spacer(1, 3 * mm))
+
     # ── Final Profit ──
     elements.append(HRFlowable(
         width="100%", thickness=1, color=BRAND_BORDER, spaceAfter=3 * mm

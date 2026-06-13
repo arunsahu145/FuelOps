@@ -128,6 +128,15 @@ class MonthlyExpenseResponse(BaseModel):
     year: int
 
 
+class MonthlyBankDepositResponse(BaseModel):
+    working_capital: float
+    solar: float
+    truck: float
+    top_up_finance: float
+    total: float
+    deposit_date: Optional[date] = None
+
+
 class MonthlyReportSummary(BaseModel):
     month: int
     year: int
@@ -164,6 +173,7 @@ class MonthlyReportSummary(BaseModel):
     # Sub-totals
     monthly_expenses: List[MonthlyExpenseResponse]
     salaries: List[EmployeeSalaryResponse]
+    bank_deposits: List[MonthlyBankDepositResponse] = []
 
 
 class MonthlyCloseResponse(BaseModel):

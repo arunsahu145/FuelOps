@@ -154,3 +154,14 @@ def get_salary_history(
         }
         for s in salaries
     ]
+
+
+@router.delete("/salary-payments/{payment_id}")
+def delete_salary_payment(payment_id: int, db: Session = Depends(get_db)):
+    """Delete a salary payment entry."""
+    salary = db.query(EmployeeSalary).filter_by(id=payment_id).first()
+    if not salary:
+        raise HTTPException(status_code=404, detail="Salary payment not found")
+    db.delete(salary)
+    db.commit()
+    return {"detail": "Salary payment deleted", "id": payment_id}

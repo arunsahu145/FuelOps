@@ -421,3 +421,24 @@ class ProfitReport(Base):
     cost = Column(Float, default=0.0)
     profit = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.now)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BANK DEPOSITS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class BankDeposit(Base):
+    """Monthly bank deposit records (Working Capital, Solar, Truck, Top Up Finance)."""
+    __tablename__ = "bank_deposits"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    month = Column(Integer, nullable=False)
+    year = Column(Integer, nullable=False)
+    deposit_date = Column(Date, nullable=True)
+    working_capital = Column(Float, default=0.0)
+    solar = Column(Float, default=0.0)
+    truck = Column(Float, default=0.0)
+    top_up_finance = Column(Float, default=0.0)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+
